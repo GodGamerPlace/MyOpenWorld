@@ -1,129 +1,134 @@
 // ===============================
-// CAR SYSTEM + SECRET SPAWN CODE
+// GTA-STYLE 3D CAR
 // ===============================
 
+let car = null;
+let isCarActive = false;
+
+// Secret code tracking
+let secretCode = [];
+const secretSequence = ["jump","jump","jump","crouch","crouch","jump","jump"];
+const secretTimeout = 3000; // 3 seconds
+let lastInputTime = 0;
+
 function createCar(scene) {
+    // Car body
+    const bodyGeo = new THREE.BoxGeometry(2, 0.7, 4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.castShadow = true;
+    body.receiveShadow = true;
 
-    // -------------------------------
-    // CAR MESH
-    // -------------------------------
-    const carGeo = new THREE.BoxGeometry(2, 1, 4);
-    const carMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-    const mesh = new THREE.Mesh(carGeo, carMat);
+    // Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
-    mesh.visible = false;
-    scene.add(mesh);
-
-    // -------------------------------
-    // STATE
-    // -------------------------------
-    let isActive = false;
-    let speed = 0;
-    let rotation = 0;
-
-    // -------------------------------
-    // RANDOM SPAWN POSITIONS
-    // -------------------------------
-    const spawnPoints = [];
-    for (let i = 0; i < 20; i++) {
-        spawnPoints.push({
-            x: (Math.random() - 0.5) * 160,
-            z: (Math.random() - 0.5) * 160
-        });
+    const wheels = [];
+    for (let i = 0; i < 4; i++) {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.castShadow = true;
+        wheel.receiveShadow = true;
+        wheels.push(wheel);
+        scene.add(wheel);
     }
 
-    function spawnCar() {
-        const p = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-        mesh.position.set(p.x, 0.5, p.z);
-        mesh.visible = true;
-        isActive = false;
-        speed = 0;
-        rotation = 0;
-        console.log("🚗 Car Spawned");
-    }
+    // Position wheels relative to body
+    wheels[0].position.set(-0.9, 0.15, -1.5);
+    wheels[1].position.set(0.9, 0.15, -1.5);
+    wheels[2].position.set(-0.9, 0.15, 1.5);
+    wheels[3].position.set(0.9, 0.15, 1.5);
 
-    // -------------------------------
-    // SECRET CODE SYSTEM
-    // -------------------------------
-    const secretCode = ["J","J","J","C","C","J","J"];
-    let inputBuffer = [];
+    body.position.set(5, 0.35, 5);
+    scene.add(body);
 
-    function registerInput(type) {
-        inputBuffer.push(type);
-        if (inputBuffer.length > secretCode.length) {
-            inputBuffer.shift();
-        }
+    car = {
+        mesh: body,
+        wheels: wheels,
+        isActive: false,
+        speed: 0,
+        update: updateCar
+    };
 
-        if (inputBuffer.join("") === secretCode.join("")) {
-            spawnCar();
-            inputBuffer = [];
-        }
-    }
+    setupCarControls();
+    return car;
+}
 
-    // -------------------------------
-    // PC INPUT
-    // -------------------------------
+// -------------------------------
+// CAR CONTROLS
+// -------------------------------
+function setupCarControls() {
     window.addEventListener("keydown", (e) => {
-        if (e.code === "Space") registerInput("J");
-        if (e.key.toLowerCase() === "c") registerInput("C");
+        const now = Date.now();
+        if (now - lastInputTime > secretTimeout) secretCode = [];
+        lastInputTime = now;
+
+        if (e.key.toLowerCase() === " ") secretCode.push("jump");
+        if (e.key.toLowerCase() === "c") secretCode.push("crouch");
+        checkSecretCode();
+
+        if (car.isActive) {
+            switch (e.key.toLowerCase()) {
+                case "w": car.speed = 10; break;
+                case "s": car.speed = -5; break;
+            }
+        }
     });
 
-    // -------------------------------
-    // MOBILE INPUT UI
-    // -------------------------------
-    const isTouchDevice =
-        "ontouchstart" in window ||
-        navigator.maxTouchPoints > 0;
-
-    if (isTouchDevice) {
-
-        function createButton(text, right, bottom, onPress) {
-            const btn = document.createElement("div");
-            btn.innerText = text;
-            btn.style.position = "fixed";
-            btn.style.right = right;
-            btn.style.bottom = bottom;
-            btn.style.width = "70px";
-            btn.style.height = "70px";
-            btn.style.borderRadius = "50%";
-            btn.style.background = "rgba(255,255,255,0.25)";
-            btn.style.color = "#fff";
-            btn.style.display = "flex";
-            btn.style.alignItems = "center";
-            btn.style.justifyContent = "center";
-            btn.style.fontSize = "14px";
-            btn.style.zIndex = "1000";
-
-            btn.addEventListener("touchstart", (e) => {
-                e.preventDefault();
-                onPress();
-            }, { passive: false });
-
-            document.body.appendChild(btn);
+    window.addEventListener("keyup", (e) => {
+        if (car.isActive && (e.key.toLowerCase() === "w" || e.key.toLowerCase() === "s")) {
+            car.speed = 0;
         }
+    });
 
-        createButton("JUMP", "20px", "110px", () => registerInput("J"));
-        createButton("CROUCH", "100px", "20px", () => registerInput("C"));
+    // Mobile input placeholder
+}
+
+// -------------------------------
+// CHECK SECRET CODE
+// -------------------------------
+function checkSecretCode() {
+    if (secretCode.length > secretSequence.length) secretCode.shift();
+    if (secretCode.join(",") === secretSequence.join(",")) {
+        spawnCarAtPlayer();
+        secretCode = [];
     }
+}
 
-    // -------------------------------
-    // CAR DRIVING (WHEN ACTIVE)
-    // -------------------------------
-    function update(delta) {
-        if (!isActive || !mesh.visible) return;
+// -------------------------------
+// SPAWN CAR
+// -------------------------------
+function spawnCarAtPlayer() {
+    if (!player) return;
+    car.mesh.position.copy(player.mesh.position);
+    car.mesh.position.x += 2;
+    car.mesh.position.y = 0.35;
+    car.mesh.visible = true;
 
-        mesh.position.x += Math.sin(rotation) * speed * delta;
-        mesh.position.z += Math.cos(rotation) * speed * delta;
+    // Update wheels position relative to body
+    const w = car.wheels;
+    w[0].position.set(car.mesh.position.x -0.9, 0.15, car.mesh.position.z -1.5);
+    w[1].position.set(car.mesh.position.x +0.9, 0.15, car.mesh.position.z -1.5);
+    w[2].position.set(car.mesh.position.x -0.9, 0.15, car.mesh.position.z +1.5);
+    w[3].position.set(car.mesh.position.x +0.9, 0.15, car.mesh.position.z +1.5);
 
-        speed *= 0.98;
-    }
+    console.log("Car spawned!");
+}
 
-    // -------------------------------
-    // RETURN CAR
-    // -------------------------------
-    return {
-        mesh,
-        isActive,
-        update
-    };
+// -------------------------------
+// UPDATE CAR LOOP
+// -------------------------------
+function updateCar(delta) {
+    if (!car.isActive) return;
+
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyQuaternion(car.mesh.quaternion);
+    car.mesh.position.add(forward.multiplyScalar(car.speed * delta));
+
+    // Update wheels position relative to body
+    const w = car.wheels;
+    w[0].position.set(car.mesh.position.x -0.9, 0.15, car.mesh.position.z -1.5);
+    w[1].position.set(car.mesh.position.x +0.9, 0.15, car.mesh.position.z -1.5);
+    w[2].position.set(car.mesh.position.x -0.9, 0.15, car.mesh.position.z +1.5);
+    w[3].position.set(car.mesh.position.x +0.9, 0.15, car.mesh.position.z +1.5);
 }

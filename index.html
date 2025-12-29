@@ -17,13 +17,13 @@ body {
 #startMenu {
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, #000000, #111111);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     overflow: hidden;
+    background: linear-gradient(180deg, #000, #111);
 }
 
 /* Moving background effect */
@@ -73,30 +73,25 @@ body {
     background: #00ff00;
     color: black;
 }
-
-#playBtn:hover {
-    background: #00cc00;
-    transform: scale(1.05);
-}
+#playBtn:hover { background: #00cc00; transform: scale(1.05); }
 
 #creditsBtn {
     background: #222;
     color: white;
     border: 1px solid #555;
 }
-
-#creditsBtn:hover {
-    background: #333;
-    transform: scale(1.05);
-}
+#creditsBtn:hover { background: #333; transform: scale(1.05); }
 
 #creditsPanel {
     display: none;
     color: white;
     margin-top: 20px;
     text-align: center;
-    font-size: 14px;
-    max-width: 300px;
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(to right, #ff0000, #00ff00, #0000ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     z-index: 1;
 }
 
@@ -122,14 +117,13 @@ body {
     <button class="btn" id="playBtn">PLAY</button>
     <button class="btn" id="creditsBtn">CREDITS</button>
     <div id="creditsPanel">
-        <!-- Leave blank for your credits -->
+        Make By God Gamer, Subscribe to My Channel-@GodGamerrblx.
     </div>
 </div>
 
 <!-- GAME INFO -->
 <div id="info">
-    WASD / Joystick = Move<br>
-    E = Enter / Exit Car
+    WASD / Joystick = Move | SPACE = Jump | C = Crouch | E = Enter/Exit Car
 </div>
 
 <!-- THREE.JS -->
@@ -151,8 +145,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // Play button
     playBtn.addEventListener("click", () => {
-        startMenu.style.display = "none"; // hide menu
-        startGame(); // start the game
+        startMenu.style.display = "none";
+        window.startGame();
     });
 
     // Credits toggle
@@ -162,5 +156,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 </script>
+
 </body>
 </html>

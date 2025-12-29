@@ -1,151 +1,126 @@
 // ===============================
-// PLAYER CONTROLLER (PC + MOBILE)
+// GTA-STYLE 3D PLAYER
 // ===============================
 
-function createPlayer(scene, camera) {
+let player = null;
+let moveSpeed = 5;
+let runSpeed = 8;
+let jumpSpeed = 8;
+let gravity = 20;
+let isJumping = false;
+let isCrouching = false;
+let velocityY = 0;
 
-    // -------------------------------
-    // PLAYER MESH
-    // -------------------------------
-    const geometry = new THREE.BoxGeometry(1, 2, 1);
+// Create player capsule
+function createPlayer(scene, camera) {
+    // Capsule geometry for humanoid
+    const geometry = new THREE.CapsuleGeometry(0.5, 1.5, 4, 8);
     const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(0, 1, 0);
+    mesh.position.set(0, 1.5, 0);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     scene.add(mesh);
 
-    // -------------------------------
-    // DEVICE DETECTION
-    // -------------------------------
-    const isTouchDevice =
-        "ontouchstart" in window ||
-        navigator.maxTouchPoints > 0;
-
-    // -------------------------------
-    // MOVEMENT STATE
-    // -------------------------------
-    let moveX = 0;
-    let moveZ = 0;
-    const speed = 6;
-    let rotationY = 0;
-
-    // ===============================
-    // PC CONTROLS (KEYBOARD)
-    // ===============================
-    if (!isTouchDevice) {
-        const keys = { w: false, a: false, s: false, d: false };
-
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "w") keys.w = true;
-            if (e.key === "a") keys.a = true;
-            if (e.key === "s") keys.s = true;
-            if (e.key === "d") keys.d = true;
-        });
-
-        window.addEventListener("keyup", (e) => {
-            if (e.key === "w") keys.w = false;
-            if (e.key === "a") keys.a = false;
-            if (e.key === "s") keys.s = false;
-            if (e.key === "d") keys.d = false;
-        });
-
-        setInterval(() => {
-            moveX = 0;
-            moveZ = 0;
-            if (keys.w) moveZ -= 1;
-            if (keys.s) moveZ += 1;
-            if (keys.a) moveX -= 1;
-            if (keys.d) moveX += 1;
-        }, 16);
-    }
-
-    // ===============================
-    // MOBILE CONTROLS (JOYSTICK)
-    // ===============================
-    if (isTouchDevice) {
-
-        // Joystick UI
-        const joystick = document.createElement("div");
-        joystick.style.position = "fixed";
-        joystick.style.left = "20px";
-        joystick.style.bottom = "20px";
-        joystick.style.width = "120px";
-        joystick.style.height = "120px";
-        joystick.style.borderRadius = "50%";
-        joystick.style.background = "rgba(255,255,255,0.2)";
-        joystick.style.zIndex = "1000";
-
-        const stick = document.createElement("div");
-        stick.style.position = "absolute";
-        stick.style.left = "40px";
-        stick.style.top = "40px";
-        stick.style.width = "40px";
-        stick.style.height = "40px";
-        stick.style.borderRadius = "50%";
-        stick.style.background = "rgba(255,255,255,0.6)";
-
-        joystick.appendChild(stick);
-        document.body.appendChild(joystick);
-
-        let startX = 0, startY = 0;
-
-        joystick.addEventListener("touchstart", (e) => {
-            const t = e.touches[0];
-            startX = t.clientX;
-            startY = t.clientY;
-        });
-
-        joystick.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            const t = e.touches[0];
-            const dx = t.clientX - startX;
-            const dy = t.clientY - startY;
-
-            const max = 40;
-            const clampedX = Math.max(-max, Math.min(max, dx));
-            const clampedY = Math.max(-max, Math.min(max, dy));
-
-            stick.style.transform =
-                `translate(${clampedX}px, ${clampedY}px)`;
-
-            moveX = clampedX / max;
-            moveZ = clampedY / max;
-        }, { passive: false });
-
-        joystick.addEventListener("touchend", () => {
-            stick.style.transform = "translate(0,0)";
-            moveX = 0;
-            moveZ = 0;
-        });
-    }
-
-    // ===============================
-    // UPDATE LOOP
-    // ===============================
-    function update(delta) {
-
-        if (moveX !== 0 || moveZ !== 0) {
-            rotationY = Math.atan2(moveX, moveZ);
-            mesh.rotation.y = rotationY;
-        }
-
-        const dirX = Math.sin(rotationY);
-        const dirZ = Math.cos(rotationY);
-
-        mesh.position.x += dirX * speed * delta * moveZ;
-        mesh.position.z += dirZ * speed * delta * moveZ;
-
-        mesh.position.x += Math.cos(rotationY) * speed * delta * moveX * 0.6;
-        mesh.position.z -= Math.sin(rotationY) * speed * delta * moveX * 0.6;
-
-        // Ground lock
-        mesh.position.y = 1;
-    }
-
-    // ===============================
-    // RETURN PLAYER
-    // ===============================
-    return {
-        mesh,
-        update
+    player = {
+        mesh: mesh,
+        camera: camera,
+        velocity: new THREE.Vector3(),
+        update: updatePlayer
     };
+
+    setupControls();
+    return player;
+}
+
+// -------------------------------
+// CONTROLS
+// -------------------------------
+const keys = {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    jump: false,
+    crouch: false
+};
+
+function setupControls() {
+    // PC
+    window.addEventListener("keydown", (e) => {
+        switch (e.key.toLowerCase()) {
+            case "w": keys.forward = true; break;
+            case "s": keys.backward = true; break;
+            case "a": keys.left = true; break;
+            case "d": keys.right = true; break;
+            case " ": keys.jump = true; break;
+            case "c": keys.crouch = true; break;
+        }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        switch (e.key.toLowerCase()) {
+            case "w": keys.forward = false; break;
+            case "s": keys.backward = false; break;
+            case "a": keys.left = false; break;
+            case "d": keys.right = false; break;
+            case " ": keys.jump = false; break;
+            case "c": keys.crouch = false; break;
+        }
+    });
+
+    // Mobile joystick placeholder (update keys.forward/backward/left/right)
+}
+
+// -------------------------------
+// UPDATE PLAYER
+// -------------------------------
+function updatePlayer(delta) {
+    let speed = moveSpeed;
+
+    // Direction vector
+    const direction = new THREE.Vector3();
+    if (keys.forward) direction.z -= 1;
+    if (keys.backward) direction.z += 1;
+    if (keys.left) direction.x -= 1;
+    if (keys.right) direction.x += 1;
+    direction.normalize();
+
+    // Move
+    player.mesh.position.x += direction.x * speed * delta;
+    player.mesh.position.z += direction.z * speed * delta;
+
+    // Jump
+    if (keys.jump && !isJumping) {
+        velocityY = jumpSpeed;
+        isJumping = true;
+    }
+
+    // Crouch
+    if (keys.crouch && !isCrouching) {
+        isCrouching = true;
+        player.mesh.scale.y = 0.6;
+        player.mesh.position.y -= 0.5;
+    } else if (!keys.crouch && isCrouching) {
+        isCrouching = false;
+        player.mesh.scale.y = 1;
+        player.mesh.position.y += 0.5;
+    }
+
+    // Gravity
+    if (isJumping) {
+        velocityY -= gravity * delta;
+        player.mesh.position.y += velocityY * delta;
+        if (player.mesh.position.y <= 1.5) {
+            player.mesh.position.y = 1.5;
+            isJumping = false;
+            velocityY = 0;
+        }
+    }
+
+    // Camera follow
+    const offset = new THREE.Vector3(0, 4, 8);
+    const target = player.mesh.position.clone().add(offset);
+    player.camera.position.lerp(target, 0.1);
+    player.camera.lookAt(player.mesh.position);
 }

@@ -3,10 +3,10 @@
 // ===============================
 
 let scene, camera, renderer, clock;
-let player, car, world;
+let playerObj, carObj, worldObj;
 let isInCar = false;
 
-// Expose startGame globally
+// Expose startGame globally for Play button
 window.startGame = function() {
     if (window.gameStarted) return;
     window.gameStarted = true;
@@ -47,7 +47,6 @@ function initThree() {
     sun.position.set(50, 100, 50);
     scene.add(sun);
 
-    // Resize
     window.addEventListener("resize", onResize);
 }
 
@@ -61,15 +60,15 @@ function onResize() {
 // INIT OBJECTS
 // -------------------------------
 function initWorld() {
-    world = createWorld(scene);
+    worldObj = createWorld(scene);
 }
 
 function initPlayer() {
-    player = createPlayer(scene, camera);
+    playerObj = createPlayer(scene, camera);
 }
 
 function initCar() {
-    car = createCar(scene);
+    carObj = createCar(scene);
 }
 
 // -------------------------------
@@ -84,20 +83,20 @@ window.addEventListener("keydown", (e) => {
 });
 
 function toggleCar() {
-    if (!player || !car || !car.mesh.visible) return;
+    if (!playerObj || !carObj || !carObj.mesh.visible) return;
 
-    const distance = player.mesh.position.distanceTo(car.mesh.position);
+    const distance = playerObj.mesh.position.distanceTo(carObj.mesh.position);
 
     if (!isInCar && distance < 3) {
         isInCar = true;
-        player.mesh.visible = false;
-        car.isActive = true;
+        playerObj.mesh.visible = false;
+        carObj.isActive = true;
     } else if (isInCar) {
         isInCar = false;
-        player.mesh.visible = true;
-        player.mesh.position.copy(car.mesh.position);
-        player.mesh.position.x += 2;
-        car.isActive = false;
+        playerObj.mesh.visible = true;
+        playerObj.mesh.position.copy(carObj.mesh.position);
+        playerObj.mesh.position.x += 2;
+        carObj.isActive = false;
     }
 }
 
@@ -109,15 +108,15 @@ function animate() {
 
     const delta = clock.getDelta();
 
-    if (player && !isInCar) {
-        player.update(delta);
-        followPlayerCamera();
+    if (playerObj && !isInCar) {
+        playerObj.update(delta);
     }
 
-    if (car && isInCar) {
-        car.update(delta);
-        followCarCamera();
+    if (carObj && isInCar) {
+        carObj.update(delta);
     }
+
+    updateCamera();
 
     renderer.render(scene, camera);
 }
@@ -125,16 +124,16 @@ function animate() {
 // -------------------------------
 // CAMERA FOLLOW
 // -------------------------------
-function followPlayerCamera() {
-    const offset = new THREE.Vector3(0, 4, 8);
-    const target = player.mesh.position.clone().add(offset);
-    camera.position.lerp(target, 0.1);
-    camera.lookAt(player.mesh.position);
-}
-
-function followCarCamera() {
-    const offset = new THREE.Vector3(0, 6, 12);
-    const target = car.mesh.position.clone().add(offset);
-    camera.position.lerp(target, 0.1);
-    camera.lookAt(car.mesh.position);
+function updateCamera() {
+    if (isInCar && carObj) {
+        const offset = new THREE.Vector3(0, 6, 12);
+        const target = carObj.mesh.position.clone().add(offset);
+        camera.position.lerp(target, 0.1);
+        camera.lookAt(carObj.mesh.position);
+    } else if (playerObj) {
+        const offset = new THREE.Vector3(0, 4, 8);
+        const target = playerObj.mesh.position.clone().add(offset);
+        camera.position.lerp(target, 0.1);
+        camera.lookAt(playerObj.mesh.position);
+    }
 }
