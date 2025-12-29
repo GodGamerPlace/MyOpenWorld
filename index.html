@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mini Open World Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: black;
+}
+
+/* ===== START MENU ===== */
+#startMenu {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, #000000, #111111);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* Moving background effect */
+#startMenu::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,255,0,0.05) 0,
+        rgba(0,255,0,0.05) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+    animation: moveBg 4s linear infinite;
+    z-index: 0;
+}
+
+@keyframes moveBg {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 50px; }
+}
+
+#title {
+    color: #00ff00;
+    font-size: 42px;
+    margin-bottom: 50px;
+    text-align: center;
+    z-index: 1;
+    text-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+}
+
+.btn {
+    width: 220px;
+    padding: 15px;
+    margin: 10px;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+#playBtn {
+    background: #00ff00;
+    color: black;
+}
+
+#playBtn:hover {
+    background: #00cc00;
+    transform: scale(1.05);
+}
+
+#creditsBtn {
+    background: #222;
+    color: white;
+    border: 1px solid #555;
+}
+
+#creditsBtn:hover {
+    background: #333;
+    transform: scale(1.05);
+}
+
+#creditsPanel {
+    display: none;
+    color: white;
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    max-width: 300px;
+    z-index: 1;
+}
+
+/* Info panel */
+#info {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    color: white;
+    background: rgba(0,0,0,0.6);
+    padding: 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    z-index: 10;
+}
+</style>
+</head>
+
+<body>
+<!-- START MENU -->
+<div id="startMenu">
+    <div id="title">MINI OPEN WORLD</div>
+    <button class="btn" id="playBtn">PLAY</button>
+    <button class="btn" id="creditsBtn">CREDITS</button>
+    <div id="creditsPanel">
+        <!-- Leave blank for your credits -->
+    </div>
+</div>
+
+<!-- GAME INFO -->
+<div id="info">
+    WASD / Joystick = Move<br>
+    E = Enter / Exit Car
+</div>
+
+<!-- THREE.JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<!-- GAME FILES -->
+<script src="world.js"></script>
+<script src="player.js"></script>
+<script src="car.js"></script>
+<script src="main.js"></script>
+
+<!-- START MENU LOGIC -->
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+    const playBtn = document.getElementById("playBtn");
+    const creditsBtn = document.getElementById("creditsBtn");
+    const creditsPanel = document.getElementById("creditsPanel");
+    const startMenu = document.getElementById("startMenu");
+
+    // Play button
+    playBtn.addEventListener("click", () => {
+        startMenu.style.display = "none"; // hide menu
+        startGame(); // start the game
+    });
+
+    // Credits toggle
+    creditsBtn.addEventListener("click", () => {
+        creditsPanel.style.display =
+            creditsPanel.style.display === "none" ? "block" : "none";
+    });
+});
+</script>
+</body>
+</html>
